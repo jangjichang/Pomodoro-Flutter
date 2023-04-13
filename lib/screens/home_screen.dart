@@ -9,14 +9,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int totalSeconds = 25 * 60;
+  static int defaultSeconds = 25 * 60;
+  int totalSeconds = defaultSeconds;
+  int totalPomodoros = 0;
   bool isRunning = false;
   late Timer timer;
 
   void onTick(Timer timer) {
-    setState(() {
-      totalSeconds = totalSeconds - 1;
-    });
+    if (totalSeconds == 0) {
+      setState(() {
+        totalPomodoros = totalPomodoros + 1;
+        isRunning = false;
+        totalSeconds = defaultSeconds;
+      });
+      timer.cancel();
+    } else {
+      setState(() {
+        totalSeconds = totalSeconds - 1;
+      });
+    }
   }
 
   void onStartPressed() {
@@ -36,6 +47,21 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void onResetPressed() {
+    timer.cancel();
+    setState(() {
+      isRunning = false;
+      totalSeconds = defaultSeconds;
+    });
+  }
+
+  String formatTime(int seconds) {
+    String minutes = (seconds ~/ 60).toString().padLeft(2, '0');
+    String remainingSeconds = (seconds % 60).toString().padLeft(2, '0');
+
+    return '$minutes:$remainingSeconds';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,31 +70,39 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Flexible(
             flex: 1,
-            child: Container(
-              alignment: Alignment.bottomCenter,
-              child: Text(
-                '${totalSeconds ~/ 60}:${(totalSeconds % 60).toString().padLeft(2, '0')}',
-                style: TextStyle(
-                  color: Theme.of(context).cardColor,
-                  fontSize: 89,
-                  fontWeight: FontWeight.w600,
-                ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: drawCounterContainerList(
+                context,
+                formatTime(totalSeconds),
               ),
             ),
           ),
           Flexible(
               flex: 3,
-              child: Center(
-                child: IconButton(
-                  iconSize: 120,
-                  color: Theme.of(context).cardColor,
-                  icon: Icon(
-                    isRunning
-                        ? Icons.pause_circle_outline
-                        : Icons.play_circle_outline,
+              child: Column(
+                children: [
+                  Center(
+                    child: IconButton(
+                      iconSize: 120,
+                      color: Theme.of(context).cardColor,
+                      icon: Icon(
+                        isRunning
+                            ? Icons.pause_circle_outline
+                            : Icons.play_circle_outline,
+                      ),
+                      onPressed: isRunning ? onPausePressed : onStartPressed,
+                    ),
                   ),
-                  onPressed: isRunning ? onPausePressed : onStartPressed,
-                ),
+                  Center(
+                    child: IconButton(
+                      iconSize: 40,
+                      color: Theme.of(context).cardColor,
+                      icon: const Icon(Icons.restore_rounded),
+                      onPressed: onResetPressed,
+                    ),
+                  )
+                ],
               )),
           Flexible(
             flex: 1,
@@ -78,7 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(50),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(40),
+                        topRight: Radius.circular(40),
+                      ),
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -93,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         Text(
-                          '0',
+                          '$totalPomodoros',
                           style: TextStyle(
                             fontSize: 60,
                             fontWeight: FontWeight.w600,
@@ -109,6 +146,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           )
         ],
+      ),
+    );
+  }
+
+  List<Container> drawCounterContainerList(
+      BuildContext context, String formatedTime) {
+    List<Container> list = [];
+    for (int i = 0; i < formatedTime.length; i++) {
+      list.add(drawCounterContainer(context, formatedTime[i]));
+    }
+    return list;
+  }
+
+  Container drawCounterContainer(BuildContext context, String formatedTime) {
+    return Container(
+      alignment: Alignment.bottomCenter,
+      width: 65,
+      child: Text(
+        formatedTime,
+        style: TextStyle(
+          color: Theme.of(context).cardColor,
+          fontSize: 89,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
